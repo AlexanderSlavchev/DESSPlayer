@@ -4,7 +4,7 @@ window.DESS_CONFIG = {
   folderId: "1nkYssPUG7yENPpOS6NM3nN9N8zupQ2Km",
 
   // Google API ключ (Drive API, ограничен до този сайт). Виж README.md
-  apiKey: "",
+  apiKey: "AIzaSyB6oSAJcwD0uY-78qjrPhJxX8CsRiu_3dQ",
 
   artist: "Десислава"
 };
