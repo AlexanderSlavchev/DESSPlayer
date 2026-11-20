@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Десислава · Личен плеър</title>
+<meta name="description" content="Личен аудио плеър на Десислава">
+<meta name="theme-color" content="#0d0506">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Десислава">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0506;
+  --bg-2:#160809;
+  --panel:rgba(255,255,255,.035);
+  --line:rgba(231,201,145,.16);
+  --gold:#e7c991;
+  --gold-2:#b8935a;
+  --gold-soft:rgba(231,201,145,.12);
+  --red:#a3121f;
+  --text:#f6eee4;
+  --muted:#a89a8e;
+  --player-h:148px;
+  --serif:"Cormorant Garamond","Times New Roman",serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--sans);
+  min-height:100dvh;-webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,.track:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Layout ---------- */
+.app{max-width:1180px;margin:0 auto}
+.hero{position:relative;height:min(72vh,560px);overflow:hidden}
+.hero img{
+  width:100%;height:100%;object-fit:cover;object-position:50% 14%;display:block;
+}
+.hero::after{
+  content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(to bottom,rgba(13,5,6,.35) 0%,rgba(13,5,6,0) 22%,rgba(13,5,6,0) 45%,rgba(13,5,6,.82) 82%,var(--bg) 100%);
+}
+.hero-text{position:absolute;left:0;right:0;bottom:0;padding:0 22px 18px;z-index:2;text-align:center}
+.eyebrow{
+  font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold);
+  font-weight:600;margin-bottom:8px;padding-left:.42em;
+}
+h1{
+  font-family:var(--serif);font-weight:500;font-size:clamp(38px,12.5vw,84px);line-height:.95;
+  letter-spacing:.06em;text-transform:uppercase;
+  background:linear-gradient(180deg,#fff6e3 0%,var(--gold) 55%,var(--gold-2) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.rule{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;color:var(--gold-2)}
+.rule::before,.rule::after{content:"";height:1px;width:56px;background:linear-gradient(90deg,transparent,var(--gold-2))}
+.rule::after{transform:scaleX(-1)}
+.rule span{font-size:9px}
+
+.main{padding:8px 16px calc(var(--player-h) + 28px + env(safe-area-inset-bottom))}
+
+/* ---------- Toolbar ---------- */
+.toolbar{display:flex;gap:10px;align-items:center;margin:14px 0 6px}
+.play-all{
+  flex:none;height:48px;padding:0 22px;border-radius:999px;font-weight:700;font-size:14px;letter-spacing:.04em;
+  color:#1c0f07;background:linear-gradient(180deg,#f4dcae,var(--gold) 45%,var(--gold-2));
+  box-shadow:0 8px 24px rgba(184,147,90,.28),inset 0 1px 0 rgba(255,255,255,.5);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.play-all svg{width:16px;height:16px}
+.play-all:active{transform:scale(.97)}
+.search{
+  flex:1;min-width:0;height:48px;display:flex;align-items:center;gap:10px;padding:0 16px;
+  border:1px solid var(--line);border-radius:999px;background:var(--panel);
+}
+.search svg{width:18px;height:18px;flex:none;color:var(--muted)}
+.search input{
+  flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:inherit;font-size:16px;
+}
+.search input::placeholder{color:var(--muted)}
+.count{font-size:12px;color:var(--muted);letter-spacing:.08em;margin:14px 6px 6px;text-transform:uppercase}
+
+/* ---------- Track list ---------- */
+.list{list-style:none}
+.track{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  padding:13px 12px;border-radius:14px;min-height:62px;position:relative;
+  transition:background .18s;
+}
+.track + .track::before{content:"";position:absolute;left:54px;right:12px;top:0;height:1px;background:rgba(255,255,255,.055)}
+.track:hover{background:var(--panel)}
+.track.active{background:linear-gradient(90deg,rgba(163,18,31,.34),rgba(163,18,31,.06))}
+.track.active::before,.track.active + .track::before{display:none}
+.num{
+  flex:none;width:28px;text-align:center;font-family:var(--serif);font-size:20px;color:var(--gold-2);
+  font-variant-numeric:tabular-nums;
+}
+.track.active .num{display:none}
+.eq{display:none;flex:none;width:28px;height:18px;align-items:flex-end;justify-content:center;gap:3px}
+.track.active .eq{display:flex}
+.eq i{width:3px;height:100%;background:var(--gold);border-radius:2px;transform-origin:bottom;transform:scaleY(.3)}
+.playing .track.active .eq i{animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:-.35s!important}
+.eq i:nth-child(3){animation-delay:-.7s!important}
+@keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+.t-body{flex:1;min-width:0}
+.t-title{display:block;font-size:16px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track.active .t-title{color:var(--gold)}
+.t-sub{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-dur{flex:none;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ---------- States ---------- */
+.state{text-align:center;padding:44px 20px;color:var(--muted);line-height:1.6}
+.state strong{display:block;font-family:var(--serif);font-size:26px;font-weight:500;color:var(--gold);margin-bottom:6px}
+.state button{
+  margin-top:16px;height:44px;padding:0 22px;border-radius:999px;border:1px solid var(--gold-2);color:var(--gold);font-weight:600;
+}
+.spinner{
+  width:34px;height:34px;border-radius:50%;margin:0 auto 16px;
+  border:2px solid var(--gold-soft);border-top-color:var(--gold);animation:spin .9s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Player ---------- */
+.player{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(28,10,12,.86),rgba(13,5,6,.97));
+  -webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);
+  border-top:1px solid var(--line);
+  box-shadow:0 -18px 50px rgba(0,0,0,.55);
+}
+.player-inner{max-width:760px;margin:0 auto}
+.now{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.now img{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:none;border:1px solid var(--line)}
+.now-text{flex:1;min-width:0}
+.now-title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.now-sub{font-size:12px;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;margin-top:1px}
+
+.seek{display:flex;align-items:center;gap:10px}
+.time{font-size:11.5px;color:var(--muted);width:40px;font-variant-numeric:tabular-nums}
+.time:last-child{text-align:right}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;flex:1;height:28px;background:none;cursor:pointer;margin:0;
+  --p:0%;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:4px;border-radius:4px;
+  background:linear-gradient(90deg,var(--gold) var(--p),rgba(255,255,255,.14) var(--p));
+}
+input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:rgba(255,255,255,.14)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:var(--gold)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;margin-top:-6px;
+  background:#fff6e3;border:2px solid var(--gold-2);box-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;background:#fff6e3;border:2px solid var(--gold-2);
+}
+
+.controls{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.ctl{
+  width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:var(--text);position:relative;
+  transition:transform .12s,color .15s;
+}
+.ctl:active{transform:scale(.9)}
+.ctl svg{width:24px;height:24px}
+.ctl.small svg{width:21px;height:21px}
+.ctl.small{color:var(--muted)}
+.ctl.on{color:var(--gold)}
+.ctl.on::after{content:"";position:absolute;bottom:5px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--gold)}
+.ctl .badge{position:absolute;font-size:9px;font-weight:700;top:17px;left:0;right:0;text-align:center;display:none}
+.ctl.one .badge{display:block}
+.ctl.main-btn{
+  width:60px;height:60px;color:#1c0f07;
+  background:linear-gradient(180deg,#f7e2b8,var(--gold) 45%,var(--gold-2));
+  box-shadow:0 8px 26px rgba(184,147,90,.35),inset 0 1px 0 rgba(255,255,255,.55);
+}
+.ctl.main-btn svg{width:26px;height:26px}
+.ctl.main-btn .i-pause,.playing .ctl.main-btn .i-play{display:none}
+.playing .ctl.main-btn .i-pause{display:block}
+.ctl.main-btn.loading{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.6}}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--player-h) + 26px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
+  background:#2a1114;border:1px solid var(--line);color:var(--text);padding:10px 18px;border-radius:999px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:30;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Desktop ---------- */
+@media (min-width:900px){
+  .app{display:grid;grid-template-columns:minmax(360px,44%) 1fr;gap:0 36px;padding:0 32px}
+  .hero{position:sticky;top:0;height:100dvh;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  .hero::after{background:linear-gradient(to bottom,rgba(13,5,6,.2),rgba(13,5,6,0) 30%,rgba(13,5,6,.25) 55%,rgba(13,5,6,.95) 88%)}
+  .hero-text{padding-bottom:calc(var(--player-h) + 28px)}
+  h1{font-size:clamp(38px,4.1vw,62px)}
+  .main{padding-top:40px;padding-left:0;padding-right:0}
+  .track{padding:14px 16px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hero">
+    <img src="assets/desislava.jpg" alt="Десислава" fetchpriority="high">
+    <div class="hero-text">
+      <p class="eyebrow">Личен плеър</p>
+      <h1>Десислава</h1>
+      <div class="rule" aria-hidden="true"><span>◆</span></div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="toolbar">
+      <button class="play-all" id="playAll" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg>
+        Пусни
+      </button>
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span class="sr">Търсене на песен</span>
+        <input id="search" type="search" placeholder="Търси песен…" autocomplete="off" enterkeyhint="search">
+      </label>
+    </div>
+    <p class="count" id="count" aria-live="polite"></p>
+    <ul class="list" id="list"></ul>
+    <div class="state" id="state"><div class="spinner"></div>Зареждане на песните…</div>
+  </main>
+</div>
+
+<footer class="player" id="player">
+  <div class="player-inner">
+    <div class="now">
+      <img src="assets/cover.jpg" alt="">
+      <div class="now-text">
+        <div class="now-title" id="nowTitle">Избери песен</div>
+        <div class="now-sub">Десислава</div>
+      </div>
+    </div>
+    <div class="seek">
+      <span class="time" id="cur">0:00</span>
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Позиция в песента">
+      <span class="time" id="dur">0:00</span>
+    </div>
+    <div class="controls">
+      <button class="ctl small" id="shuffle" type="button" aria-label="Разбъркване" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+      </button>
+      <button class="ctl" id="prev" type="button" aria-label="Предишна песен">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5a1 1 0 0 1 1 1v5.1l10.4-6.4A1 1 0 0 1 19 5.5v13a1 1 0 0 1-1.6.8L7 12.9V18a1 1 0 1 1-2 0V6a1 1 0 0 1 1-1z"/></svg>
+      </button>
+      <button class="ctl main-btn" id="play" type="button" aria-label="Пусни">
+        <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 8 4.5z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4.2" height="15" rx="1.2"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2"/></svg>
+      </button>
+      <button class="ctl" id="next" type="button" aria-label="Следваща песен">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 5a1 1 0 0 0-1 1v5.1L6.6 4.7A1 1 0 0 0 5 5.5v13a1 1 0 0 0 1.6.8L17 12.9V18a1 1 0 1 0 2 0V6a1 1 0 0 0-1-1z"/></svg>
+      </button>
+      <button class="ctl small" id="repeat" type="button" aria-label="Повторение: изключено">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+        <span class="badge">1</span>
+      </button>
+    </div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+<audio id="audio" preload="metadata"></audio>
+
+<script src="config.js"></script>
+<script>
+(() => {
+  "use strict";
+  const CFG = window.DESS_CONFIG || {};
+  const $ = id => document.getElementById(id);
+  const audio = $("audio"), listEl = $("list"), stateEl = $("state"), countEl = $("count");
+  const seek = $("seek"), curEl = $("cur"), durEl = $("dur"), nowTitle = $("nowTitle");
+  const playBtn = $("play"), shuffleBtn = $("shuffle"), repeatBtn = $("repeat");
+
+  const AUDIO_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|aif|aiff|wma|mp4)$/i;
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem("dess." + k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem("dess." + k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  let tracks = [];          // {id, title, sub, url, alt}
+  let view = [];            // indexes into tracks after search filter
+  let current = -1;
+  let shuffle = !!store.get("shuffle", false);
+  let repeat = store.get("repeat", "off"); // off | all | one
+  let history = [];
+  let seeking = false;
+  let triedAlt = false;
+  let errorStreak = 0;
+
+  /* ---------- helpers ---------- */
+  const fmt = s => {
+    if (!isFinite(s) || s < 0) return "0:00";
+    s = Math.floor(s);
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = String(s % 60).padStart(2, "0");
+    return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+  };
+  const cleanTitle = name => name
+    .replace(AUDIO_EXT, "")
+    .replace(/_/g, " ")
+    .replace(/^\s*\d{1,3}\s*[.\-_)]\s*/, "")
+    .replace(/\s{2,}/g, " ").trim() || name;
+  const collator = new Intl.Collator("bg", { numeric: true, sensitivity: "base" });
+  let toastTimer;
+  const toast = msg => {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+  };
+  const showState = html => { stateEl.innerHTML = html; stateEl.hidden = false; };
+
+  /* ---------- loading the playlist ---------- */
+  async function listFolder(folderId, label, depth) {
+    let out = [], pageToken = "";
+    do {
+      const p = new URLSearchParams({
+        q: `'${folderId}' in parents and trashed = false`,
+        fields: "nextPageToken,files(id,name,mimeType,shortcutDetails)",
+        pageSize: "1000", orderBy: "name_natural",
+        supportsAllDrives: "true", includeItemsFromAllDrives: "true",
+        key: CFG.apiKey
+      });
+      if (pageToken) p.set("pageToken", pageToken);
+      const r = await fetch("https://www.googleapis.com/drive/v3/files?" + p);
+      if (!r.ok) throw new Error("drive " + r.status);
+      const j = await r.json();
+      for (const f of j.files || []) {
+        const mime = f.shortcutDetails ? f.shortcutDetails.targetMimeType : f.mimeType;
+        const id = f.shortcutDetails ? f.shortcutDetails.targetId : f.id;
+        if (mime === "application/vnd.google-apps.folder") {
+          if (depth < 3) out = out.concat(await listFolder(id, f.name, depth + 1));
+        } else if ((mime || "").startsWith("audio/") || AUDIO_EXT.test(f.name)) {
+          out.push({ id, name: f.name, folder: label });
+        }
+      }
+      pageToken = j.nextPageToken || "";
+    } while (pageToken);
+    return out;
+  }
+
+  const driveUrl = id => `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(CFG.apiKey)}`;
+  const driveAlt = id => `https://drive.google.com/uc?export=download&id=${id}`;
+
+  async function loadTracks() {
+    let items = [];
+    if (CFG.apiKey && CFG.folderId) {
+      items = (await listFolder(CFG.folderId, "", 0)).map(f => ({
+        id: f.id, title: cleanTitle(f.name), sub: f.folder,
+        url: driveUrl(f.id), alt: driveAlt(f.id)
+      }));
+    } else {
+      // Резервен вариант: ръчно описан списък в songs.json
+      const r = await fetch("songs.json", { cache: "no-cache" });
+      const j = r.ok ? await r.json() : [];
+      items = j.map((s, i) => ({
+        id: s.id || s.url || String(i),
+        title: s.title || cleanTitle(s.name || s.url || ""),
+        sub: s.sub || "",
+        url: s.url || driveAlt(s.id), alt: s.id && s.url ? driveAlt(s.id) : ""
+      }));
+    }
+    items.sort((a, b) => collator.compare(a.sub, b.sub) || collator.compare(a.title, b.title));
+    return items;
+  }
+
+  /* ---------- rendering ---------- */
+  function render() {
+    const q = $("search").value.trim().toLocaleLowerCase("bg");
+    view = tracks.map((_, i) => i).filter(i => !q ||
+      (tracks[i].title + " " + tracks[i].sub).toLocaleLowerCase("bg").includes(q));
+    listEl.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    view.forEach(i => {
+      const t = tracks[i];
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "track" + (i === current ? " active" : ""); b.dataset.i = i;
+      b.innerHTML = `<span class="num">${i + 1}</span><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="t-body"><span class="t-title"></span>${t.sub ? '<span class="t-sub"></span>' : ""}</span>
+        <span class="t-dur">${t.dur ? fmt(t.dur) : ""}</span>`;
+      b.querySelector(".t-title").textContent = t.title;
+      if (t.sub) b.querySelector(".t-sub").textContent = t.sub;
+      li.appendChild(b); frag.appendChild(li);
+    });
+    listEl.appendChild(frag);
+    if (!tracks.length) return;
+    const n = tracks.length;
+    countEl.textContent = q ? `Намерени: ${view.length} от ${n}` :
+      `${n} ${n === 1 ? "песен" : "песни"}`;
+    if (q && !view.length) showState("<strong>Няма резултати</strong>Опитай с друга дума.");
+    else stateEl.hidden = true;
+  }
+
+  function markActive() {
+    listEl.querySelectorAll(".track").forEach(el =>
+      el.classList.toggle("active", +el.dataset.i === current));
+  }
+
+  /* ---------- playback ---------- */
+  function load(i, autoplay) {
+    if (i < 0 || i >= tracks.length) return;
+    current = i; triedAlt = false;
+    const t = tracks[i];
+    audio.src = t.url;
+    nowTitle.textContent = t.title;
+    document.title = `${t.title} · Десислава`;
+    seek.value = 0; seek.style.setProperty("--p", "0%");
+    curEl.textContent = "0:00"; durEl.textContent = t.dur ? fmt(t.dur) : "0:00";
+    store.set("last", t.id);
+    markActive();
+    setMediaSession(t);
+    if (autoplay) play();
+  }
+  function play() {
+    if (current < 0) { if (tracks.length) load(shuffle ? Math.floor(Math.random() * tracks.length) : 0, true); return; }
+    playBtn.classList.add("loading");
+    const p = audio.play();
+    if (p) p.catch(() => playBtn.classList.remove("loading"));
+  }
+  function toggle() { audio.paused ? play() : audio.pause(); }
+
+  function pickNext(auto) {
+    const n = tracks.length;
+    if (!n) return -1;
+    if (shuffle && n > 1) {
+      let r; do { r = Math.floor(Math.random() * n); } while (r === current);
+      return r;
+    }
+    if (current + 1 < n) return current + 1;
+    return (auto && repeat === "off") ? -1 : 0;
+  }
+  function next(auto) {
+    const i = pickNext(auto);
+    if (i < 0) { audio.pause(); audio.currentTime = 0; return; }
+    if (current >= 0) history.push(current);
+    if (history.length > 200) history.shift();
+    load(i, true);
+  }
+  function prev() {
+    if (audio.currentTime > 4) { audio.currentTime = 0; return; }
+    if (history.length) return load(history.pop(), true);
+    if (tracks.length) load((current - 1 + tracks.length) % tracks.length, true);
+  }
+
+  function setMediaSession(t) {
+    if (!("mediaSession" in navigator)) return;
+    const art = new URL("assets/cover.jpg", location.href).href;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: t.title, artist: CFG.artist || "Десислава", album: t.sub || "Личен плеър",
+      artwork: [{ src: art, sizes: "512x512", type: "image/jpeg" }]
+    });
+  }
+  if ("mediaSession" in navigator) {
+    const ms = navigator.mediaSession, set = (a, f) => { try { ms.setActionHandler(a, f); } catch (e) {} };
+    set("play", play); set("pause", () => audio.pause());
+    set("previoustrack", prev); set("nexttrack", () => next(false));
+    set("seekto", e => { if (e.seekTime != null) audio.currentTime = e.seekTime; });
+    set("seekbackward", e => { audio.currentTime = Math.max(0, audio.currentTime - (e.seekOffset || 10)); });
+    set("seekforward", e => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (e.seekOffset || 10)); });
+  }
+
+  /* ---------- audio events ---------- */
+  audio.addEventListener("play", () => { document.body.classList.add("playing"); playBtn.setAttribute("aria-label", "Пауза"); });
+  audio.addEventListener("playing", () => { playBtn.classList.remove("loading"); errorStreak = 0; });
+  audio.addEventListener("waiting", () => playBtn.classList.add("loading"));
+  audio.addEventListener("pause", () => {
+    document.body.classList.remove("playing"); playBtn.classList.remove("loading");
+    playBtn.setAttribute("aria-label", "Пусни");
+  });
+  audio.addEventListener("loadedmetadata", () => {
+    durEl.textContent = fmt(audio.duration);
+    if (current >= 0 && isFinite(audio.duration)) {
+      tracks[current].dur = audio.duration;
+      const el = listEl.querySelector(`.track[data-i="${current}"] .t-dur`);
+      if (el) el.textContent = fmt(audio.duration);
+    }
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (seeking) return;
+    const d = audio.duration;
+    curEl.textContent = fmt(audio.currentTime);
+    if (isFinite(d) && d > 0) {
+      const v = audio.currentTime / d * 1000;
+      seek.value = v; seek.style.setProperty("--p", (v / 10) + "%");
+      if ("mediaSession" in navigator && navigator.mediaSession.setPositionState) {
+        try { navigator.mediaSession.setPositionState({ duration: d, position: Math.min(audio.currentTime, d), playbackRate: audio.playbackRate }); } catch (e) {}
+      }
+    }
+  });
+  audio.addEventListener("ended", () => {
+    if (repeat === "one") { audio.currentTime = 0; play(); } else next(true);
+  });
+  audio.addEventListener("error", () => {
+    if (current < 0) return;
+    const t = tracks[current];
+    if (!triedAlt && t.alt) {            // втори опит през алтернативния адрес
+      triedAlt = true; audio.src = t.alt; play(); return;
+    }
+    playBtn.classList.remove("loading");
+    errorStreak++;
+    toast(`„${t.title}“ не може да се зареди`);
+    if (errorStreak < 3 && tracks.length > 1) setTimeout(() => next(false), 900);
+  });
+
+  /* ---------- UI events ---------- */
+  listEl.addEventListener("click", e => {
+    const b = e.target.closest(".track"); if (!b) return;
+    const i = +b.dataset.i;
+    if (i === current) return toggle();
+    if (current >= 0) history.push(current);
+    load(i, true);
+  });
+  playBtn.addEventListener("click", toggle);
+  $("next").addEventListener("click", () => next(false));
+  $("prev").addEventListener("click", prev);
+  $("playAll").addEventListener("click", () => {
+    if (!tracks.length) return;
+    history = [];
+    load(shuffle ? Math.floor(Math.random() * tracks.length) : 0, true);
+  });
+
+  function paintModes() {
+    shuffleBtn.classList.toggle("on", shuffle);
+    shuffleBtn.setAttribute("aria-pressed", shuffle);
+    repeatBtn.classList.toggle("on", repeat !== "off");
+    repeatBtn.classList.toggle("one", repeat === "one");
+    repeatBtn.setAttribute("aria-label", "Повторение: " +
+      ({ off: "изключено", all: "всички песни", one: "една песен" })[repeat]);
+  }
+  shuffleBtn.addEventListener("click", () => {
+    shuffle = !shuffle; store.set("shuffle", shuffle); paintModes();
+    toast(shuffle ? "Разбъркване: включено" : "Разбъркване: изключено");
+  });
+  repeatBtn.addEventListener("click", () => {
+    repeat = { off: "all", all: "one", one: "off" }[repeat]; store.set("repeat", repeat); paintModes();
+    toast({ off: "Повторение: изключено", all: "Повтаряне на всички песни", one: "Повтаряне на тази песен" }[repeat]);
+  });
+
+  seek.addEventListener("input", () => {
+    seeking = true;
+    seek.style.setProperty("--p", (seek.value / 10) + "%");
+    if (isFinite(audio.duration)) curEl.textContent = fmt(seek.value / 1000 * audio.duration);
+  });
+  seek.addEventListener("change", () => {
+    if (isFinite(audio.duration)) audio.currentTime = seek.value / 1000 * audio.duration;
+    seeking = false;
+  });
+  $("search").addEventListener("input", render);
+
+  document.addEventListener("keydown", e => {
+    if (e.target.matches("input[type=search]")) return;
+    if (e.code === "Space") { e.preventDefault(); toggle(); }
+    else if (e.code === "ArrowRight" && e.target !== seek) audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
+    else if (e.code === "ArrowLeft" && e.target !== seek) audio.currentTime = Math.max(0, audio.currentTime - 10);
+  });
+
+  /* ---------- start ---------- */
+  async function init() {
+    paintModes();
+    showState('<div class="spinner"></div>Зареждане на песните…');
+    try {
+      tracks = await loadTracks();
+    } catch (err) {
+      console.error(err);
+      countEl.textContent = "";
+      showState('<strong>Песните не се заредиха</strong>Провери интернет връзката и опитай отново.<br><button type="button" id="retry">Опитай отново</button>');
+      $("retry").addEventListener("click", init);
+      return;
+    }
+    if (!tracks.length) {
+      countEl.textContent = "";
+      showState("<strong>Плейлистът се подготвя</strong>Песните ще се появят тук съвсем скоро.");
+      return;
+    }
+    render();
+    const last = store.get("last", null);
+    const li = tracks.findIndex(t => t.id === last);
+    if (li >= 0) load(li, false);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
